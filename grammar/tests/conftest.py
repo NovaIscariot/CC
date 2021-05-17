@@ -1,5 +1,5 @@
 import pytest
-from lab2.classes import GrammarReader, GrammarConverter
+from grammar.classes import GrammarReader, GrammarConverter
 
 
 @pytest.fixture
