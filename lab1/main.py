@@ -1,22 +1,32 @@
-from typing import List, Dict
-
-SPACES = [' ', '\t']
+from lab1.classes import *
 
 
-def delete_spaces(regexp: str) -> str:
-    return ''.join([x for x in regexp if x not in SPACES])
+# ex for ka: (xy*|ab|(x|a*))(x|y*), (a|b)*abb#
+def main():
+    regexp = input('Enter regular expression: ') + '#'
+    dka = get_dka(regexp)
+    choice = 1
+    while choice:
+        print('\nChoose action from menu below: ')
+        print('   1) Evaluate string with dka')
+        print('   2) Enter new regexp')
+        print('   3) Minimize dka')
+        print('   4) Draw dka')
+        print('   0) Exit from program')
+        try:
+            choice = int(input())
+        except Exception:
+            raise Exception('Wrong command')
+        if choice == 1:
+            string = input("Enter input string for dka: ")
+            dka.eval(string)
+        if choice == 2:
+            regexp = input('Enter regular expression: ') + '#'
+            dka = get_dka(regexp)
+        if choice == 3:
+            dka.minimize()
+        if choice == 4:
+            dka.draw_fsm()
 
 
-def check_ka_is_complete(ka: Dict) -> bool:
-    for item in ka:
-        if len(ka["rule"]) > 1:
-            return False
-    return True
-
-
-# ex for ka: (xy*|ab|(x|a*))(x|y*)
-def regexp_to_ka(regexp: str) -> Dict:
-    nka = {"q0": {"dest": "qf", "rule": regexp}}
-    while not check_ka_is_complete(nka):
-        pass
-    return nka
+main()
