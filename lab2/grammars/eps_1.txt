@@ -1,0 +1,9 @@
+1
+S
+2
+a b
+3
+S -> a S b S
+S -> b S a S
+S -> eps
+S

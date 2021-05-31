@@ -1,0 +1,12 @@
+3
+A B C
+2
+a b
+7
+A -> B C
+A -> a
+B -> C A
+B -> A b
+C -> A B
+C -> C C
+C -> a

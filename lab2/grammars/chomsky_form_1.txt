@@ -1,0 +1,14 @@
+4
+S X Y Z
+3
+a b c
+8
+S -> a X b X
+S -> a Z
+X -> a Y
+X -> b Y
+X -> eps
+Y -> X
+Y -> c c
+Z -> Z X
+S
