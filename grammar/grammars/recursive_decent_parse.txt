@@ -1,0 +1,14 @@
+5
+E A T B F
+5
++ * ( ) n
+8
+E -> T A
+A -> + E
+A -> eps
+T -> F B
+B -> * T
+B -> eps
+F -> n
+F -> ( E )
+E
