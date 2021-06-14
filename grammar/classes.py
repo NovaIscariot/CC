@@ -3,8 +3,10 @@ from abc import ABC, abstractmethod
 from typing import List
 from queue import SimpleQueue, LifoQueue
 import os
+import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+logging.basicConfig(level=logging.INFO, format='%(levelname)s:\t%(message)s')
 
 
 def get_next_char(char, union):
@@ -100,7 +102,6 @@ class Grammar(object):
                 return True, evaled, cur_tree
 
         return False, evaled, None
-
 
     def sort_rules(self):
         self.rules = sorted(self.rules, key=lambda x: self.nonterminal.index(x.lhs))
@@ -888,3 +889,237 @@ class RecursiveDecentParser(GrammarParser):
         if string[0] == 'and':
             return True, 1, CommonTree('and')
         return False, 0, None
+
+
+g0_opr_table = {
+    ")":  {"(": "e3", "a": "e3", "*": ">", "+": ">", ")": ">", "$": ">"},
+    "a":  {"(": "e3", "a": "e3", "*": ">", "+": ">", ")": ">", "$": ">"},
+    "*":  {"(": "<", "a": "<", "*": ">", "+": ">", ")": ">", "$": ">"},
+    "+":  {"(": "<", "a": "<", "*": "<", "+": ">", ")": ">", "$": ">"},
+    "(":  {"(": "<", "a": "<", "*": "<", "+": "<", ")": "=", "$": "e4"},
+    "$":  {"(": "<", "a": "<", "*": "<", "+": "<", ")": "e2", "$": "e1"},
+}
+
+g1_pascal_opr_table = {
+    ####
+    #
+    # begin/end terminals
+    #
+    ####
+    "begin": {"begin": "e", "end": "=", "=": "e", ";": "<", "<>": "e", "<": "e", "<=": "e",
+              ">": "e", ">=": "e", "+": "e", "-": "e", "or": "e", "*": "e", "/": "e", "div": "e",
+              "mod": "e", "and": "e", "not": "e", "id": "<", "const": "e", "(": "e", ")": "e", "$": "e"},
+
+    "end":   {"begin": "e", "end": "e", "=": "e", ";": "e", "<>": "e", "<": "e", "<=": "e",
+              ">": "e", ">=": "e", "+": "e", "-": "e", "or": "e", "*": "e", "/": "e", "div": "e",
+              "mod": "e", "and": "e", "not": "e", "id": "e", "const": "e", "(": "e", ")": "e", "$": "<"},
+
+    "=":     {"begin": "e", "end": ">", "=": "<", ";": ">", "<>": "<", "<": "<", "<=": "<",
+              ">": "<", ">=": "<", "+": "<", "-": "<", "or": "<", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    ";":     {"begin": "e", "end": ">", "=": "e", ";": ">", "<>": "e", "<": "e", "<=": "e",
+              ">": "e", ">=": "e", "+": "e", "-": "e", "or": "e", "*": "e", "/": "e", "div": "e",
+              "mod": "e", "and": "e", "not": "e", "id": "<", "const": "e", "(": "e", ")": "e", "$": "e"},
+
+    ####
+    #
+    # Relation terminals
+    #
+    ####
+    "<>":    {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": "<", "-": "<", "or": "<", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "<":     {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": "<", "-": "<", "or": "<", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "<=":    {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": "<", "-": "<", "or": "<", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    ">":     {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": "<", "-": "<", "or": "<", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    ">=":    {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": "<", "-": "<", "or": "<", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+    ####
+    #
+    # Sym / SymOp terminals
+    #
+    ####
+    "+":     {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "-":     {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "or":    {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+    ####
+    #
+    # MulOp terminals
+    #
+    ####
+    "*":     {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "/":     {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "div":   {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "mod":   {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "and":   {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "<", "id": "<", "const": "<", "(": "<", ")": ">", "$": "e"},
+
+    "not":   {"begin": "e", "end": ">", "=": "e", ";": "e", "<>": "e", "<": "e", "<=": "e",
+              ">": "e", ">=": "e", "+": "<", "-": "<", "or": "e", "*": "e", "/": "e", "div": "e",
+              "mod": "e", "and": "e", "not": "e", "id": ">", "const": ">", "(": "<", ")": "e", "$": "e"},
+
+    "id":    {"begin": "e", "end": ">", "=": "=", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "e", "id": "e", "const": "e", "(": "e", ")": ">", "$": "e"},
+
+    "const": {"begin": "e", "end": ">", "=": "<", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "e", "id": "e", "const": "e", "(": "e", ")": ">", "$": "e"},
+
+    "(":     {"begin": "e", "end": "e", "=": "<", ";": "<", "<>": "<", "<": "<", "<=": "<",
+              ">": "<", ">=": "<", "+": "<", "-": "<", "or": "<", "*": "<", "/": "<", "div": "<",
+              "mod": "<", "and": "<", "not": "<", "id": "<", "const": "<", "(": "<", ")": "=", "$": "e"},
+
+    ")":     {"begin": "e", "end": ">", "=": ">", ";": ">", "<>": ">", "<": ">", "<=": ">",
+              ">": ">", ">=": ">", "+": ">", "-": ">", "or": ">", "*": ">", "/": ">", "div": ">",
+              "mod": ">", "and": ">", "not": "e", "id": "e", "const": "e", "(": "e", ")": ">", "$": "e"},
+
+    "$":     {"begin": "<", "end": "e", "=": "e", ";": "e", "<>": "e", "<": "e", "<=": "e",
+              ">": "e", ">=": "e", "+": "e", "-": "e", "or": "e", "*": "e", "/": "e", "div": "e",
+              "mod": "e", "and": "e", "not": "e", "id": "e", "const": "e", "(": "e", ")": "e", "$": "e"},
+}
+
+
+class OperatorPrecedenceParser(GrammarParser):
+    def __init__(self, grammar: Grammar, opr_matrix):
+        self.grammar = grammar
+        self.opr_matrix = opr_matrix
+
+        self.stack = []
+
+        # For multiple formats output
+        self.terminal_stack = []
+
+    def parse(self, string, show_parsing=False):
+        log = logging.getLogger(__name__)
+        if show_parsing:
+            log.setLevel(logging.INFO)
+        else:
+            log.setLevel(logging.ERROR)
+
+        if not string:
+            log.error("Missed operand")
+            return False
+
+        self.stack = ['$']
+        self.terminal_stack = []
+        terms = [str(terminal) for terminal in self.grammar.terminal] + ['$']
+        iteration = 0
+        tokens = string.split() + ['$']
+        error = False
+
+        while tokens[0] != '$':
+            if tokens[0] not in terms:
+                log.error("Undefined terminal symbol")
+                return False
+            if self.stack:
+                last_term_idx = -1
+                while self.stack[last_term_idx] not in terms and len(self.stack) + last_term_idx > -1:
+                    last_term_idx -= 1
+                opr = self.opr_matrix[str(self.stack[last_term_idx])][tokens[0]]
+                # reduce
+                if opr == '>':
+                    log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-r ")
+                    error = not self.reduce()
+                # shift
+                elif opr in ('<', '='):
+                    log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-s ")
+                    self.stack.append(tokens[0])
+                    tokens = tokens[1:]
+                elif opr == 'e1':
+                    log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-e2 ")
+                    log.error("Missed operand")
+                    return False
+                elif opr == 'e2':
+                    log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-e2 ")
+                    log.error("Unbalanced right bracket")
+                    return False
+                elif opr == 'e3':
+                    log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-e3 ")
+                    log.error("Missed operator")
+                    return False
+                elif opr == 'e4':
+                    log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-e4 ")
+                    log.error("Missed right bracket")
+                    return False
+                else:
+                    log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-e ")
+                    log.error("Undefined syntax error")
+                    return False
+                if error:
+                    log.error("No matching production")
+                    return False
+            else:
+                self.stack.append(tokens[0])
+                tokens = tokens[1:]
+            iteration += 1
+
+        while self.reduce():
+            log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-r ")
+            iteration += 1
+
+        if self.stack[1] == '(':
+            log.info(f"iter {iteration} : [{' '.join(self.stack)}, {' '.join(tokens)}] |-e4 ")
+            log.error("Missed right bracket")
+            return False
+
+        if self.stack[1] == str(self.grammar.start_symbol):
+            log.info("Accepted")
+            return True
+        log.error('Not accepted')
+        return False
+
+    def reduce(self):
+        productions = [rule for rule in self.grammar.rules if str(rule.rhs[-1]) == self.stack[-1]]
+        productions.sort(key=lambda x: len(x.rhs), reverse=True)
+
+        for rule in productions:
+            if len(self.stack) >= len(rule.rhs):
+                match = True
+                for i in range(len(rule.rhs)):
+                    if self.stack[-1-i] != str(rule.rhs[-1-i]):
+                        match = False
+                if match:
+                    for sym in rule.rhs:
+                        if sym in self.grammar.terminal:
+                            self.terminal_stack = [str(sym)] + self.terminal_stack
+                    self.stack = self.stack[:-len(rule.rhs)] + [str(rule.lhs)]
+                    return True
+
+        return False
+
+    def get_postfix_notation(self):
+        return self.terminal_stack
