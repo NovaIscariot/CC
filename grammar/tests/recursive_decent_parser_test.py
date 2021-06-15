@@ -6,13 +6,15 @@ PARENT_DIR = os.path.dirname(os.getcwd())
 
 @pytest.mark.parametrize("string", ['n + n', 'n * n', 'n * ( n + n )', '( ( ( n ) ) )'])
 def test_positive(string, read_grammar):
-    grammar = read_grammar(PARENT_DIR + '/grammars/recursive_decent_parse.txt')
+    grammar = read_grammar('recursive_decent_parse.txt')
+    res, _ = grammar.recursive_decent_parse(string)
 
-    assert grammar.recursive_decent_parse(string) is True
+    assert res is True
 
 
 @pytest.mark.parametrize("string", ['', 'n - n', 'n * + n', '( + n )', '+ n'])
 def test_negative(string, read_grammar):
-    grammar = read_grammar(PARENT_DIR + '/grammars/recursive_decent_parse.txt')
+    grammar = read_grammar('/recursive_decent_parse.txt')
+    res, _ = grammar.recursive_decent_parse(string)
 
-    assert grammar.recursive_decent_parse(string) is False
+    assert res is False
